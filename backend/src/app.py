@@ -40,6 +40,7 @@ def getUser(id):
     print(user)
     return jsonify({
         '_id': str(ObjectId(user['_id'])),
+        'name': user['name'],
         'email': user['email'],
         'password': user['password']
     })

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 const API = process.env.REACT_APP_API;
 
@@ -7,21 +7,84 @@ export const Users = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [editing, setEditing] = useState(false);
+  const [id, setId] = useState("");
+
+  const nameInput = useRef(null);
+
+  let [users, setUsers] = useState([]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    const res = await fetch(`${API}/users`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name,
-        email,
-        password,
-      }),
-    });
+
+    if (!editing) {
+      const res = await fetch(`${API}/users`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+        }),
+      });
+      await res.json();
+    } else {
+      const res = await fetch(`${API}/users/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+        }),
+      });
+      const data = await res.json();
+      console.log(data);
+      setEditing(false);
+      setId("");
+    }
+
+    await getUsers();
+
+    setName("");
+    setEmail("");
+    setPassword("");
+  };
+
+  const getUsers = async () => {
+    const res = await fetch(`${API}/users`);
     const data = await res.json();
-    console.log(data);
+    setUsers(data);
+  };
+
+  useEffect(() => {
+    getUsers();
+  }, []);
+
+  const editUser = async (id) => {
+    const res = await fetch(`${API}/users/${id}`);
+    const data = await res.json();
+
+    setEditing(true);
+    setId(id);
+
+    setName(data.name);
+    setEmail(data.email);
+    setPassword(data.password);
+  };
+  const deleteUser = async (id) => {
+    const userResponse = window.confirm("Are you sure you want to delete it?");
+    if (userResponse) {
+      const res = await fetch(`${API}/users/${id}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      await getUsers();
+    }
   };
 
   return (
@@ -56,10 +119,47 @@ export const Users = () => {
               placeholder="Password"
             />
           </div>
-          <button className="btn btn-primary btn-block">Create</button>
+          <button className="btn btn-primary btn-block">
+            {" "}
+            {editing ? "Edit" : "Create"}
+          </button>
         </form>
       </div>
-      <div className="col md-8"></div>
+      <div className="col-md-8">
+        <table className="table table-striped">
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Password</th>
+              <th>Operations</th>
+            </tr>
+          </thead>
+          <tbody>
+            {users.map((user) => (
+              <tr key={user._id}>
+                <td>{user.name}</td>
+                <td>{user.email}</td>
+                <td>{user.password}</td>
+                <td>
+                  <button
+                    className="btn btn-secondary btn-sm btn-block"
+                    onClick={(e) => editUser(user._id)}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    className="btn btn-danger btn-sm btn-block"
+                    onClick={() => deleteUser(user._id)}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
